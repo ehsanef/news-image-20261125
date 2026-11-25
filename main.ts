@@ -28,6 +28,14 @@ if (bytes.length > 1048576 || !bytes.subarray(0, 8).equals(PNG_MAGIC)) {
   console.error('entry.png is not a whole PNG of at most 1 MiB');
   process.exit(1);
 }
+// Also verify the PNG header actually describes a 1024x1024 image: the
+// IHDR chunk (bytes 16-23, big-endian) must read 1024 by 1024, otherwise
+// a swapped-in image of the wrong size would pass the magic check above
+// and fail at the gate instead of here, where the error is clear.
+if (bytes.length < 24 || bytes.readUInt32BE(16) !== 1024 || bytes.readUInt32BE(20) !== 1024) {
+  console.error('entry.png is not 1024x1024');
+  process.exit(1);
+}
 if (!existsSync(destination)) mkdirSync(destination, { recursive: true });
 copyFileSync(image, join(destination, 'entry.png'));
 const written = statSync(join(destination, 'entry.png'));
